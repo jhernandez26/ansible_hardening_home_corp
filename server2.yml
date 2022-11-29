@@ -1,0 +1,11 @@
+[confluence_DEV:vars]
+ansible_user = '{{ ipa_account }}'
+ansible_password = '{{ ipa_account_password }}'
+
+[confluence_DEV]
+#USMDCKDAP10378.nix.us.kworld.kpmg.com
+lab-rhl83.home.corp
+
+
+[all:children]
+confluence_DEV

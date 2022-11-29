@@ -1,0 +1,243 @@
+---
+# tasks file for hardening_workstation
+
+- name: "Set variables"
+  set_fact:
+    SERVER_IP: "{{ item.IP }}"
+    ENV: "{{ item.enviroment }}"
+    NAME: "{{ item.hostname }}"
+  with_items: 
+    - "{{ server }}"
+  when: "  item.IP in ansible_all_ipv4_addresses "
+  tags:
+  - variables
+
+##  User  creation block
+
+- name: User and groups creation
+  block:
+  - debug:
+     msg: "User and group block for {{ ansible_all_ipv4_addresses }} "
+  
+  - name: Principal group creation
+    group:
+      name: jhernandez
+      gid:  1100
+    tags: 
+    - create_use
+    - create_group
+    ignore_errors: true
+  - debug:
+      msg: "jhernandez group creation" 
+  
+  - name: Principal user creation
+    user:
+      name: jhernandez
+      uid:  1100
+      shell: /bin/bash
+      group: jhernandez
+      password: $6$eFHBry.q1VUSdM8X$ucQJ2FnHPqy7WqtssnlADO3s9QWNt11YSxCyhcdJ6LULyTLIGem62HdTcnuo.1hhBmIp9l9Wla8XS9PCWDQ9./
+    tags: 
+    - create_user
+    ignore_errors: true
+  - debug:
+      msg: "jhernandez user creation"
+  
+  
+
+## Software instalation  block
+- name: Software instalation
+  block:
+  - debug:
+     msg: "Software installation block"   
+
+  - name: Set hostname
+    hostname:
+      name: '{{ NAME }}'
+    become: true
+    tags:
+      - install_software
+      - hostname
+  - debug:
+      msg: "Set hostname {{ NAME }} "
+  
+  - name: Software installation
+    apt:
+      name: "{{ item.name }}"
+      state: present
+    with_items: 
+      - "{{ software_debian }}"
+    when:
+      ansible_os_family == "Debian"
+    become: true
+    tags:
+      - install_software
+      - install
+  - debug:
+      msg: "Software installation"
+
+  - name: Software installation
+    yum:
+      name: "{{ item.name }}"
+      state: present
+    with_items: 
+      - "{{ software_rhel }}"
+    when:
+      ansible_os_family == "RedHat"
+    become: true
+    tags:
+      - install_software
+      - install
+  - debug:
+      msg: "Software installation "
+
+  - name:  Software extra installation
+    apt:
+      name: "{{ item.name }}"
+      state: present
+    with_items: 
+      - "{{ software_extra_debian }}"
+    when:
+      ansible_os_family == "Debian" and ENV == 'wrk'
+    become: true
+    tags:
+      - install_software_extra
+      - install
+  - debug:
+      msg: "Software extra  installation"
+
+  - name: Software extra installation
+    yum:
+      name: "{{ item.name }}"
+      state: present
+    with_items: 
+      - "{{ software_extra }}"
+    when:
+      ansible_os_family == "RedHat" and ENV == 'wrk'
+    become: true
+    tags:
+      - install_software_extra
+      - install
+  - debug:
+      msg: "Software extra installation "
+  
+  
+
+  - name: add ipa server to hosts
+    lineinfile:
+      path: /etc/hosts
+      line: "192.168.100.14   jp.home.corp jp"
+    tags:
+      - install_software
+      - add_hosts
+    become: true
+    when: " '192.168.100' in   ansible_all_ipv4_addresses  "
+  - debug:
+      msg: " 'wrk' in ENV  " 
+
+  - name: add ipa server to hosts
+    lineinfile:
+      path: /etc/hosts
+      line: "192.168.122.1   jp.home.corp jp"
+    tags:
+      - install_software
+      - add_hosts
+    become: true
+    when: " 'lab' in ENV  "  
+  - debug:
+      msg: "Add ipa server to hosts {{ SERVER_IP }} "
+
+  
+## Software configuration block
+- name: Software configuration
+  block:
+  - debug:
+     msg: "Software configuration block"
+
+  - name: ipa configuration
+    shell:
+      cmd: "ipa-client-install -p admin --domain=home.corp --server=jp.home.corp --realm=HOME.CORP --hostname={{ NAME }} -w 7pQd2agcmcQBMq --mkhomedir --enable-dns-updates -N -U --force-join --all-ip-addresses" 
+    become: true
+    tags:
+      - configure_software
+      - configure_ipa
+  - debug:
+      msg: "IPA configuration"
+  
+  - name: Create sshd.d
+    file:
+      path: /etc/ssh/sshd_config.d/
+      owner: root
+      group: root
+      mode: '0700'
+      state: 'directory'
+    become: true
+    tags:
+      - configuration_software
+      - sshd_config
+  - debug:
+      msg: "Create sshd.d"
+
+  - name: Configure sshd
+    template:
+      src: "{{ item.src }}"
+      #src: hardening_workstation/templates/sshd_config.j2
+      dest: "{{ item.dest }}"
+      #dest:  /etc/ssh/sshd_config
+      owner: root
+      mode: 0744
+    with_items: 
+      - "{{ sshd_config }}"
+    become: true
+    tags:
+      - sshd_config
+  - debug:
+      msg: "Configure sshd"
+
+  - name: Set authorized key took from file
+    authorized_key:
+      user: jhernandez
+      state: present
+      key: "{{ lookup('file', '/home/jhernandez/.ssh/jhernandez.pub') }}"
+
+  - name: Configure Firefox policies
+    file:
+      path: /etc/firefox/policies/
+      owner: root
+      group: root
+      mode: '0755'
+      state: 'directory'
+    become: true
+    tags:
+      - policies_firefox
+    when: " 'wrk' in ENV   and ansible_os_family == 'Debian' "  
+  - debug:
+      msg: "Configure Firefox policies"
+
+  - name: Configure Firefox policies
+    template:
+      src: hardening_workstation/templates/policies.json.j2
+      dest:  /etc/firefox/policies/policies.json
+      owner: root
+      mode: 0644
+    become: true
+    tags:
+      - policies_firefox
+    when: " 'wrk' in ENV   and ansible_os_family == 'Debian' "  
+  - debug:
+      msg: "Configure Firefox policies"
+
+  - name: Disable USB
+    template:
+      src: hardening_workstation/templates/usb.conf.j2
+      dest:  /etc/modprobe.d/usb.conf
+      owner: root
+      mode: 0644
+    become: true
+    tags:
+      - policies_usb
+    when: " 'wrk' in ENV   "
+  - debug:
+      msg: "Configure Firefox policies"
+  
+  

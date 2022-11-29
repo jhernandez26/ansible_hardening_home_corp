@@ -1,0 +1,35 @@
+{
+"policies": {
+    "ExtensionSettings": {
+      "*": {
+        "blocked_install_message": "No puedes instalar software.",
+        "install_sources": ["https://support.mozilla.org/*"],
+        "installation_mode": "blocked",
+        "allowed_types": ["extension"]
+      }
+      },"Proxy": {
+        "Mode": "manual" ,
+        "Locked": true ,
+        "HTTPProxy": "proxy.home.corp:3128",
+        "UseHTTPProxyForAllProtocols": true,
+        "UseProxyForDNS": true
+    },"BlockAboutConfig": true,"DisablePrivateBrowsing": true,"Preferences": {
+      "accessibility.force_disabled": {
+        "Value": 0,
+        "Status": "default"
+      }
+    }, "Homepage": {
+        "URL": "http://www.google.com/",
+        "Locked": true,
+        "StartPage": "homepage"
+    },"EnableTrackingProtection": {
+      "Value": true,
+      "Locked": true,
+      "Cryptomining": true,
+      "Fingerprinting": true
+    },"PopupBlocking": {
+      "Default": true,
+      "Locked": true
+    }
+  }
+}

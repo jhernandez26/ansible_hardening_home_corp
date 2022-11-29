@@ -1,0 +1,35 @@
+---
+# vars file for hardening_workstation
+
+## Usuarios y contraseñas
+admin_account_wrk: jhernandez
+admin_password_wrk: "pablo31."
+
+admin_account_lab: root
+admin_password_lab: "root123"
+
+
+## Variables para la task
+server:  
+  - { hostname: lab-rhel83.home.corp, IP: 192.168.122.23, enviroment: lab }
+  - { hostname: hijas.home.corp, IP: 192.168.100.38, enviroment: wrk }
+
+
+
+
+software_debian:
+  - { name: freeipa-client  }
+  - { name: oddjob-mkhomedir }
+
+software_rhel:
+  - { name: ipa-client }
+
+sshd_config:
+  - { src: hardening_workstation/templates/sshd_config.j2, dest: /etc/ssh/sshd_config }
+  - { src: hardening_workstation/templates/03-home.conf.j2, dest: /etc/ssh/sshd_config.d/03-home.conf }
+
+software_extra_debian:
+  - { name: firefox  }
+
+software_extra_rhel:
+  - { name: firefox }

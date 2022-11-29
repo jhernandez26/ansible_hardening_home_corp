@@ -1,0 +1,4 @@
+---
+- hosts: user_workstation
+  roles:
+    - hardening_workstation
